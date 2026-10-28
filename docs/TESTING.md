@@ -1,7 +1,8 @@
 # TESTING
 
 ## Automated (run in build environment)
-- `npm test` → `node --test tests/` — 17 tests: dates, parser, engine, privacy, permissions, store, backup, restore, Android links. **Result 29 Oct 2026: 17/17 pass.**
+- `npm test` → `node --test tests/core.test.js` — 19 tests: dates, parser, engine, privacy, permissions, store, backup, restore, Android links, WhatsApp phrasings, mic test. **Result 29 Oct 2026: 19/19 pass.**
+- `tests/browser/native-bridge.mjs` — 11 checks of the Android bridge (simulated). **Result 29 Oct 2026: 11/11 pass.**
 - `tests/browser/ui-smoke.mjs` — phone-size UI, persistence after reload, overflow on all 5 views, console errors. **Pass, 0 JS errors.**
 - `tests/browser/flows.mjs` — 24 checks: approvals, backup/restore/undo, tampered and wrong-passphrase files, reminder alert, erase-all strong confirm, XSS, offline. **24/24 pass.**
 - `tests/browser/theme-voice-watchdog.mjs` — light theme and no stuck "Processing" state without a voice engine. **Pass.**

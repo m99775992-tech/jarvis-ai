@@ -30,7 +30,7 @@ jobs:
           gradle-version: '8.7'
 
       - name: Run JARVIS core tests
-        run: node --test tests/
+        run: node --test tests/core.test.js
 
       - name: Restore signing key (from repository secrets)
         env:

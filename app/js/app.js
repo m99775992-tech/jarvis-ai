@@ -801,5 +801,5 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { ch
 if ('serviceWorker' in navigator && window.isSecureContext) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
-try { navigator.storage?.persist?.(); } catch {}
+try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch {}
 window.__jarvis = { get state() { return state; }, submit, VERSION }; // for QA only; contains no secrets

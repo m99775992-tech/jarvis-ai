@@ -1,4 +1,4 @@
-// Local persistence + schema validation. Everything lives on this device (localStorage).
+// Local persistence + schema validation. Everything lives on this device (browser storage).
 // normalize() is the single gatekeeper for any data entering the app (load + restore).
 
 export const SCHEMA = 1;

@@ -2,7 +2,7 @@
 // Bump CACHE when files change; old caches are removed on activate (rollback = redeploy previous version).
 const CACHE = 'jarvis-shell-v0.1.0';
 const SHELL = ['./', './index.html', './css/style.css', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png',
-  './js/app.js', './js/engine.js', './js/parser.js', './js/dates.js', './js/store.js', './js/backup.js', './js/permissions.js', './js/apps.js', './js/voice.js'];
+  './js/app.js', './js/engine.js', './js/parser.js', './js/dates.js', './js/store.js', './js/backup.js', './js/permissions.js', './js/apps.js', './js/voice.js', './js/storage.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -34,6 +34,10 @@ Legend: **Tested** = implemented and verified by automated test · **Built, need
 | Live research summaries | Planned — Phase 6 | Today: opens Google search only |
 | Business dashboard, client workspaces, project factory | Planned — Phase 8 | |
 
+## Deployment
+- Preview build (`tools/build-preview.sh` → `dist-preview/`) deployed for viewing: in-memory only, no offline worker.
+- Full persistent build (`app/`) is not hosted yet — needs free GitHub Pages (see SETUP.md).
+
 ## Known limitations
 - Reminders cannot fire when JARVIS is fully closed (browser limitation). Use "Add to Google Calendar" for anything important.
 - The app cannot read Android's ringer mode; the silent switch is manual.

@@ -1,6 +1,9 @@
 # SETUP (Android phone only)
 
-## Use it now
+## Preview link (look only)
+The Perplexity preview link runs a special build that **does not save anything** (that host forbids browser storage). Use it to see and try the interface. For real use, host the full `app/` folder as below.
+
+## Use it for real
 1. Open the JARVIS link in **Chrome** on your phone.
 2. Chrome menu (⋮) → **Add to Home screen** / **Install app**. JARVIS gets its own icon and opens full-screen.
 3. Open JARVIS once while online so it caches itself for offline use.

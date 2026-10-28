@@ -1,5 +1,7 @@
 # JARVIS AI — Mizan Technology
 
+**Live app:** https://m99775992-tech.github.io/jarvis-ai/ (open in Chrome on Android, then ⋮ → Add to Home screen)
+
 **Just A Rather Very Intelligent System.** Owner: Kaleem Sundke · Version 0.1.0 (Phase 1 foundation + parts of Phases 2–4).
 
 JARVIS is an installable phone web app (PWA). It runs entirely on your Android phone in Chrome, costs ₹0, needs no laptop, no API key and no paid subscription, and keeps working offline after the first load.

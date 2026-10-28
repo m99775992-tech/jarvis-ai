@@ -46,3 +46,7 @@ Legend: **Tested** = implemented and verified by automated test · **Built, need
 - The app cannot read Android's ringer mode; the silent switch is manual.
 - Speech recognition on Chrome Android sends audio to Google to convert to text (disclosed before enabling).
 - Data lives in Chrome's storage for this site. Clearing Chrome site data erases it — keep backups.
+
+## Deployment
+- Live on GitHub Pages: https://m99775992-tech.github.io/jarvis-ai/ (branch `gh-pages` = contents of `app/`). Verified 29 Oct 2026: page loads, microphone access allowed, tasks persist after reload, service worker registered, no console errors. Not yet verified on Sir's own phone.
+- To update: `git subtree split --prefix app` → push to `gh-pages`.

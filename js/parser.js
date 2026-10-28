@@ -55,6 +55,7 @@ export function parse(raw, now = new Date()) {
 
   // --- control ---
   if (/^(stop|cancel|abort|quiet|silence|be quiet|shut up|enough|stop talking)$/.test(l)) return { intent: 'stop' };
+  if (/^(mic test|test (the )?(mic|microphone|voice)|check (the )?(mic|microphone|voice)|voice test|microphone test|can you hear me|hear me|do you hear me|are you hearing me)/.test(l)) return { intent: 'mic_test' };
   if (/^(help|commands|what can you do|what can i say|how do i use you|menu)/.test(l)) return { intent: 'help' };
   if (/^(mute|voice off|stop speaking|disable voice|turn off voice|don'?t speak)/.test(l)) return { intent: 'voice_off' };
   if (/^(unmute|voice on|enable voice|turn on voice|speak to me|talk to me)$/.test(l)) return { intent: 'voice_on' };

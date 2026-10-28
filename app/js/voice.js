@@ -33,6 +33,27 @@ export function listen({ lang = 'en-IN', onInterim, onFinal, onEnd, onError }) {
   return rec;
 }
 
+/** Ask Chrome for the microphone directly. This shows the real Allow/Block prompt reliably on
+ *  Android; the stream is closed immediately so speech recognition can use the mic. */
+export async function primeMic() {
+  if (!navigator.mediaDevices?.getUserMedia) return { ok: false, error: 'no-getusermedia' };
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach((t) => t.stop());
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.name || 'error' }; }
+}
+
+/** 'granted' | 'denied' | 'prompt' | 'unknown' */
+export async function micPermission() {
+  try { return (await navigator.permissions.query({ name: 'microphone' })).state; } catch { return 'unknown'; }
+}
+
+/** True when opened inside WhatsApp/Instagram/Facebook etc. built-in browsers, where the mic rarely works. */
+export function inAppBrowser(ua = navigator.userAgent) {
+  return /; wv\)|FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat/i.test(ua);
+}
+
 export function stopListening() {
   if (rec) { try { rec.abort(); } catch {} rec = null; }
 }

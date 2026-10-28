@@ -275,3 +275,4 @@ dialog .row-actions { justify-content: flex-end; margin-top: var(--s5); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.msg.jarvis > div:nth-child(2) { white-space: pre-line; }

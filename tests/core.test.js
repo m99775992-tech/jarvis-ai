@@ -228,3 +228,11 @@ test('parser: WhatsApp phrasings from Sir', () => {
   }
   assert.equal(parse('open whatsapp').intent, 'open_app');
 });
+
+test('voice: mic test phrases and in-app browser detection', async () => {
+  for (const s of ['Mic test', 'test the microphone', 'check mic', 'can you hear me']) assert.equal(parse(s).intent, 'mic_test', s);
+  const { inAppBrowser } = await import('../app/js/voice.js');
+  assert.equal(inAppBrowser('Mozilla/5.0 (Linux; Android 14; SM-A146B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36'), false);
+  assert.equal(inAppBrowser('Mozilla/5.0 (Linux; Android 14; SM-A146B; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0 Mobile Safari/537.36'), true);
+  assert.equal(inAppBrowser('Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Instagram 300.0'), true);
+});

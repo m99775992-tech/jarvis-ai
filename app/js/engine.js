@@ -112,6 +112,7 @@ export function createEngine({ getState, commit }) {
       case 'identity':
         out.reply = `I am JARVIS — Just A Rather Very Intelligent System — built for Mizan Technology. At the moment I run entirely on this phone: tasks, reminders, memory, voice and app hand-offs. Deeper reasoning will arrive when an AI provider is connected, and only with your authorization, ${sir}.`;
         break;
+      case 'mic_test': out.reply = `Running a microphone check, ${sir}.`; out.micTest = true; out.speak = ''; break;
       case 'help': out.reply = `Here is what I can do right now, ${sir}.`; out.help = HELP; break;
       case 'time': out.reply = `It is ${friendlyTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)}, ${sir}.`; break;
       case 'date': out.reply = `Today is ${WEEKDAY[now.getDay()]}, ${now.getDate()} ${MONTH[now.getMonth()]} ${now.getFullYear()}, ${sir}.`; break;

@@ -1,0 +1,1 @@
+{"name":"jarvis-ai","private":true,"type":"module","scripts":{"test":"node --test tests/"}}

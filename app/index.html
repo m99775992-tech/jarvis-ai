@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#05080a">
+<meta name="description" content="JARVIS AI — personal assistant by Mizan Technology">
+<title>JARVIS · Mizan Technology</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Geist:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body data-state="idle" data-view="core">
+<a class="skip" href="#composer-input">Skip to command input</a>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <div class="brand-name">J.A.R.V.I.S</div>
+        <div class="brand-sub">Mizan Technology</div>
+      </div>
+    </div>
+    <div class="chips" role="status" aria-label="System status">
+      <span class="chip" id="chip-net"><i></i><b>ONLINE</b></span>
+      <span class="chip" id="chip-mode"><i></i><b>NORMAL</b></span>
+      <span class="chip" id="chip-mic" title="Microphone"><i></i><b>MIC OFF</b></span>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- CORE -->
+    <section class="view active" id="view-core" aria-label="Assistant">
+      <div class="reactor-wrap">
+        <canvas id="wave" width="300" height="300" aria-hidden="true"></canvas>
+        <div class="reactor-label">
+          <div class="state-label" id="state-label">IDLE</div>
+          <div class="state-sub" id="state-sub">Standing by</div>
+        </div>
+      </div>
+      <div class="strip" id="today-strip" aria-live="polite"></div>
+      <div class="convo" id="convo" aria-live="polite" aria-label="Conversation"></div>
+    </section>
+
+    <!-- TASKS -->
+    <section class="view" id="view-tasks" aria-label="Tasks">
+      <div class="view-head">
+        <h1>Mission board</h1>
+        <p class="muted" id="tasks-summary"></p>
+      </div>
+      <form class="panel add-task" id="task-form" autocomplete="off">
+        <label class="sr" for="tf-title">Task</label>
+        <input id="tf-title" maxlength="200" placeholder="New task, Sir…" required>
+        <div class="row">
+          <select id="tf-when" aria-label="When">
+            <option value="today">Today</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="pick">Pick date</option>
+            <option value="none">No date</option>
+          </select>
+          <input type="date" id="tf-date" aria-label="Date" hidden>
+          <input type="time" id="tf-time" aria-label="Time">
+          <select id="tf-priority" aria-label="Priority">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+          <button class="btn primary" type="submit">Add</button>
+        </div>
+      </form>
+      <div id="task-sections"></div>
+    </section>
+
+    <!-- MEMORY -->
+    <section class="view" id="view-memory" aria-label="Memory">
+      <div class="view-head">
+        <h1>Memory core</h1>
+        <p class="muted">Stored only on this phone. Nothing here is sent anywhere.</p>
+      </div>
+      <div class="panel">
+        <div class="setting">
+          <div><b>Long-term memory</b><span class="muted">Lets JARVIS keep facts you ask it to remember</span></div>
+          <label class="switch"><input type="checkbox" id="mem-enabled"><span></span></label>
+        </div>
+        <form class="inline-form" id="mem-form" autocomplete="off">
+          <input id="mem-input" maxlength="400" placeholder="e.g. My board exams start on 15 Feb">
+          <button class="btn" type="submit">Remember</button>
+        </form>
+        <p class="hint">Passwords, PINs, OTPs and card numbers are refused automatically.</p>
+        <ul class="list" id="mem-list"></ul>
+      </div>
+      <div class="panel">
+        <h2>Contacts</h2>
+        <p class="muted">Used to open WhatsApp, SMS or the dialer for the right person. Numbers stay on this phone.</p>
+        <form class="inline-form" id="contact-form" autocomplete="off">
+          <input id="ct-name" maxlength="60" placeholder="Name (e.g. Ali)" required>
+          <input id="ct-phone" maxlength="20" inputmode="tel" placeholder="Phone (10 digits)" required>
+          <button class="btn" type="submit">Save</button>
+        </form>
+        <ul class="list" id="contact-list"></ul>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section class="view" id="view-log" aria-label="Activity log">
+      <div class="view-head">
+        <h1>Activity log</h1>
+        <p class="muted">What JARVIS did, proposed, or refused. Message text and secrets are never logged.</p>
+      </div>
+      <div class="panel row-actions">
+        <button class="btn" id="log-export">Export log</button>
+        <button class="btn danger-ghost" id="log-clear">Clear log</button>
+      </div>
+      <ul class="list log" id="log-list"></ul>
+    </section>
+
+    <!-- SYSTEM -->
+    <section class="view" id="view-system" aria-label="System">
+      <div class="view-head">
+        <h1>Systems</h1>
+        <p class="muted">Health, privacy, voice, backup and AI providers.</p>
+      </div>
+
+      <div class="panel" id="sys-health">
+        <h2>Diagnostics</h2>
+        <ul class="kv" id="health-list"></ul>
+        <button class="btn" id="run-diag">Run diagnostics</button>
+      </div>
+
+      <div class="panel">
+        <h2>Privacy</h2>
+        <div class="seg" id="privacy-seg" role="radiogroup" aria-label="Privacy mode">
+          <button data-mode="normal" role="radio">Normal</button>
+          <button data-mode="private" role="radio">Private</button>
+          <button data-mode="public" role="radio">Public</button>
+          <button data-mode="meeting" role="radio">Meeting</button>
+        </div>
+        <p class="hint" id="privacy-desc"></p>
+        <div class="setting">
+          <div><b>Phone is on silent</b><span class="muted">A web app cannot read Android's ringer mode, so set this yourself. While on, JARVIS never speaks.</span></div>
+          <label class="switch"><input type="checkbox" id="silent-mode"><span></span></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Voice</h2>
+        <div class="setting">
+          <div><b>Spoken replies</b><span class="muted">Uses voices installed on your phone</span></div>
+          <label class="switch"><input type="checkbox" id="voice-out"><span></span></label>
+        </div>
+        <div class="setting">
+          <div><b>Voice commands</b><span class="muted" id="voice-in-desc">Microphone listens only while the mic button is active</span></div>
+          <label class="switch"><input type="checkbox" id="voice-in"><span></span></label>
+        </div>
+        <label class="field"><span>JARVIS voice</span><select id="voice-select"></select></label>
+        <label class="field"><span>Listening language</span>
+          <select id="lang-select">
+            <option value="en-IN">English (India)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="en-US">English (US)</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </label>
+        <label class="field"><span>Speed <output id="rate-out"></output></span><input type="range" id="rate" min="0.6" max="1.4" step="0.05"></label>
+        <label class="field"><span>Pitch <output id="pitch-out"></output></span><input type="range" id="pitch" min="0.5" max="1.3" step="0.05"></label>
+        <label class="field"><span>Volume <output id="volume-out"></output></span><input type="range" id="volume" min="0" max="1" step="0.05"></label>
+        <button class="btn" id="voice-test">Test voice</button>
+        <p class="hint">For the most JARVIS-like sound, install an English (United Kingdom) male voice: Android Settings → System → Languages → Text-to-speech → Speech Services by Google → Install voice data → English (UK).</p>
+      </div>
+
+      <div class="panel" id="backup">
+        <h2>Backup &amp; recovery</h2>
+        <ul class="kv" id="backup-status"></ul>
+        <label class="field"><span>Passphrase (optional, 8+ characters — encrypts the file)</span><input type="password" id="bk-pass" autocomplete="new-password" maxlength="128"></label>
+        <div class="row-actions">
+          <button class="btn primary" id="bk-create">Create backup</button>
+          <button class="btn" id="bk-share" hidden>Save to Drive / share</button>
+        </div>
+        <div class="row-actions">
+          <label class="btn file-btn">Restore from file<input type="file" id="bk-file" accept="application/json,.json"></label>
+          <button class="btn" id="bk-revert">Undo last restore</button>
+        </div>
+        <p class="hint">The passphrase is never stored. If you forget it, an encrypted backup cannot be opened — not even by Mizan Technology.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Notifications</h2>
+        <div class="setting">
+          <div><b>Reminder notifications</b><span class="muted" id="notif-desc">Delivered while JARVIS is open or recently used</span></div>
+          <label class="switch"><input type="checkbox" id="notif"><span></span></label>
+        </div>
+        <button class="btn" id="notif-test">Send test notification</button>
+      </div>
+
+      <div class="panel">
+        <h2>AI providers</h2>
+        <ul class="providers">
+          <li><span class="dot ok"></span><div><b>Local engine</b><span class="muted">Active · on-device · ₹0 · works offline</span></div></li>
+          <li><span class="dot off"></span><div><b>Claude (Anthropic API)</b><span class="muted">Disabled · not configured. Requires a separate paid API key and a private server; the Claude app subscription does not include API access. Will ask before every request.</span></div></li>
+          <li><span class="dot off"></span><div><b>Other providers / local model</b><span class="muted">Planned for Phase 5</span></div></li>
+        </ul>
+        <ul class="kv" id="usage-list"></ul>
+      </div>
+
+      <div class="panel">
+        <h2>Security</h2>
+        <ul class="kv" id="security-list"></ul>
+      </div>
+
+      <div class="panel">
+        <h2>What works today</h2>
+        <ul class="caps" id="caps-list"></ul>
+      </div>
+
+      <div class="panel">
+        <h2>Personalization</h2>
+        <label class="field"><span>How JARVIS addresses you</span><input id="honorific" maxlength="20"></label>
+        <div class="setting">
+          <div><b>Light theme</b><span class="muted">Dark is the default command-center look</span></div>
+          <label class="switch"><input type="checkbox" id="theme"><span></span></label>
+        </div>
+      </div>
+
+      <div class="panel danger-zone">
+        <h2>Danger zone</h2>
+        <p class="muted">Erase removes all tasks, memories, contacts, log and settings from this phone. Make a backup first.</p>
+        <button class="btn danger" id="erase-all">Erase all JARVIS data</button>
+      </div>
+      <p class="version muted" id="version"></p>
+    </section>
+  </main>
+
+  <form class="composer" id="composer" autocomplete="off">
+    <button type="button" class="mic" id="mic" aria-label="Start voice command" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z" fill="currentColor"/></svg>
+    </button>
+    <label class="sr" for="composer-input">Command</label>
+    <input id="composer-input" maxlength="500" placeholder="Command, Sir…" enterkeyhint="send">
+    <button type="button" class="stop" id="stop" aria-label="Stop" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+    </button>
+    <button type="submit" class="send" aria-label="Send">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5 21 12 3 3.5 3 10l12 2-12 2z" fill="currentColor"/></svg>
+    </button>
+  </form>
+  <div class="quick" id="quick">
+    <button data-cmd="Brief me">Brief me</button>
+    <button data-cmd="What do I have to do today?">Today</button>
+    <button data-cmd="What's on tomorrow?">Tomorrow</button>
+    <button data-cmd="Show my tasks this week">This week</button>
+    <button data-cmd="help">Help</button>
+  </div>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button data-view="core" class="active" aria-label="Assistant"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Core</span></button>
+    <button data-view="tasks" aria-label="Tasks"><svg viewBox="0 0 24 24"><path d="M4 6h2m4 0h10M4 12h2m4 0h10M4 18h2m4 0h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Tasks</span><em id="badge-tasks" hidden></em></button>
+    <button data-view="memory" aria-label="Memory"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3" stroke="currentColor" stroke-width="1.6"/></svg><span>Memory</span></button>
+    <button data-view="log" aria-label="Activity log"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Log</span></button>
+    <button data-view="system" aria-label="System"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" fill="none"/></svg><span>System</span></button>
+  </nav>
+</div>
+
+<div class="alert" id="alert" role="alertdialog" aria-live="assertive" hidden>
+  <div class="alert-title" id="alert-title"></div>
+  <div class="alert-body" id="alert-body"></div>
+  <div class="row-actions"><button class="btn primary" id="alert-done">Mark done</button><button class="btn" id="alert-dismiss">Dismiss</button></div>
+</div>
+
+<dialog id="confirm" aria-labelledby="cf-title">
+  <form method="dialog" id="cf-form">
+    <div class="cf-badge" id="cf-badge">AUTHORIZATION REQUIRED</div>
+    <h2 id="cf-title"></h2>
+    <dl id="cf-details"></dl>
+    <div id="cf-extra"></div>
+    <div class="row-actions">
+      <button class="btn" value="cancel" id="cf-cancel">Cancel</button>
+      <button class="btn primary" value="ok" id="cf-ok">Authorize</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

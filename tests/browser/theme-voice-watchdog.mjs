@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ headless: true, channel: 'chromium' });
+const p = await b.newPage({ viewport: { width: 375, height: 760 }, deviceScaleFactor: 2 });
+await p.goto('http://localhost:8765/'); await p.waitForTimeout(500);
+await p.fill('#composer-input','brief me'); await p.press('#composer-input','Enter'); await p.waitForTimeout(3200);
+console.log('state after speak attempt:', await p.textContent('#state-label'));
+await p.click('.tabbar button[data-view="system"]'); await p.waitForTimeout(300);
+await p.locator('#theme').check(); await p.click('.tabbar button[data-view="core"]'); await p.waitForTimeout(400);
+await p.screenshot({ path: '/tmp/qa/16-light.png' });
+await p.click('.tabbar button[data-view="tasks"]'); await p.waitForTimeout(300); await p.screenshot({ path: '/tmp/qa/17-light-tasks.png' });
+await b.close();

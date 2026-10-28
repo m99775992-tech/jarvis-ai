@@ -17,9 +17,9 @@ await send("what's on tomorrow");
 await page.screenshot({ path: '/tmp/qa/02-convo.png' });
 await send('open WhatsApp and text Ali to reach college early');
 await page.screenshot({ path: '/tmp/qa/03-wa.png' });
-// click review on last card -> dialog
-await page.locator('.card .btn').last().click();
+// approve dialog now opens by itself
 await page.waitForTimeout(300);
+if (!(await page.locator('#confirm').evaluate((d) => d.open))) throw new Error('confirm dialog did not auto-open');
 await page.screenshot({ path: '/tmp/qa/04-confirm.png' });
 await page.click('#cf-cancel'); await page.waitForTimeout(300);
 await send('remember that my exams start on 15 November');

@@ -4,12 +4,12 @@ import { load, save, normalize, addAudit, uid, defaultState, STORAGE_KEY, PRE_RE
 import { createEngine, speakable, notificationText, tasksFor, sortTasks, greetingWord, HELP } from './engine.js';
 import { check, issueApproval, needsConfirm, POLICY } from './permissions.js';
 import { createBackup, verifyBackup, applyRestore } from './backup.js';
-import { calendarUrl } from './apps.js';
+import { calendarUrl, whatsappUrl, smsUrl } from './apps.js';
 import { ymd, addDays, friendlyDate, friendlyTime } from './dates.js';
 import * as voice from './voice.js';
 import { storage, PERSISTENT } from './storage.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -161,6 +161,9 @@ function cardEl(card) {
   const node = el('div', { class: 'card' }, el('div', { class: 'card-title' }, card.title, status), el('div', { class: 'card-detail', text: card.detail || '' }), btn);
   const setStatus = (s) => { card.status = s; status.className = `status ${s}`; status.textContent = s.replace('_', ' '); };
   if (needsConfirm(card.type)) setStatus('awaiting_approval');
+  // Auto-run right after the command: the user's send/mic tap still counts as the gesture
+  // Android needs to open another app. Risky actions still stop at the Approve dialog.
+  if (card.auto) setTimeout(() => btn.click(), 60);
   btn.addEventListener('click', async () => {
     const res = await runAction(card);
     setStatus(res);
@@ -271,12 +274,15 @@ function confirmDialog(card) {
 POLICY.contact_delete = { level: 'confirm', risk: 'medium', label: 'Delete contact' };
 POLICY.revert_restore = { level: 'confirm', risk: 'high', label: 'Undo last restore' };
 
+const FRAMED = (() => { try { return window.top !== window.self; } catch { return true; } })();
 function openHref(href, external) {
-  if (/^https?:/i.test(href) && external) {
+  if ((/^https?:/i.test(href) && external) || FRAMED) {
+    // Inside a preview frame, navigating the frame itself is blocked, so ask for a new window.
     const w = window.open(href, '_blank', 'noopener,noreferrer');
-    if (!w) location.href = href;
+    if (!w && !FRAMED) location.href = href;
   } else {
-    location.href = href; // intent:, tel:, sms:, wa.me hand-offs
+    if (typeof window.__jarvisTestOpen === 'function') { window.__jarvisTestOpen(href); return; } // QA only
+    location.href = href; // intent:, tel:, sms: hand-offs launch the Android app directly
   }
 }
 
@@ -295,8 +301,7 @@ async function runAction(card) {
       case 'open_url': case 'search': case 'calendar': openHref(card.href, true); addAudit(state, card.type, 'handed_off'); commit(); return 'handed_off';
       case 'message': {
         const { channel, text } = card.payload;
-        const base = card.href.split(channel === 'sms' ? '?body=' : '?text=')[0];
-        const href = `${base}${channel === 'sms' ? '?body=' : '?text='}${encodeURIComponent(text)}`;
+        const href = channel === 'sms' ? smsUrl(card.payload.phone, text) : whatsappUrl(card.payload.phone, text);
         openHref(href);
         addAudit(state, 'message', 'handed_off', `${channel} opened; user must tap Send`); commit();
         toast(`${channel === 'sms' ? 'Messages' : 'WhatsApp'} opened, ${sir()}. Tap Send to deliver.`);
@@ -682,6 +687,13 @@ async function toggleMic() {
     onError: (err) => {
       setVState('idle');
       const why = { 'not-allowed': 'microphone permission was denied. Allow it in Chrome site settings', 'service-not-allowed': 'microphone permission was denied', 'no-speech': 'I did not hear anything', network: 'speech recognition needs an internet connection', 'audio-capture': 'no microphone was found' }[err];
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        // Stay on screen (not a toast) so the steps can be followed.
+        addJarvisMsg({ reply: FRAMED
+          ? `${sir()}, the microphone is blocked because this preview runs inside another page, and that page does not pass microphone access through. This is not something you did wrong, and changing phone settings will not fix it here. It will work once JARVIS is opened directly in Chrome (the installed version). Until then, please type your commands.`
+          : `${sir()}, Chrome is blocking the microphone for JARVIS. To allow it: 1) tap the icon to the left of the address bar, 2) tap Permissions, then Microphone, then Allow, 3) reload JARVIS. If Microphone is not listed there, open Android Settings, then Apps, then Chrome, then Permissions, then Microphone, and choose Allow only while using the app.`, cards: [] });
+        return;
+      }
       if (err !== 'aborted') toast(`${sir()}, ${why || 'voice input failed (' + err + ')'}. You can type instead.`);
     },
   });

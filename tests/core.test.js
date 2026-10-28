@@ -77,7 +77,8 @@ test('engine: consequential actions are only proposed, never executed', () => {
   assert.equal(state.tasks.length, 1, 'task must still exist until approval');
   const msg = e.handle('open whatsapp and text Ali to reach college early', { now: NOW });
   assert.equal(msg.cards[0].type, 'message');
-  assert.match(msg.cards[0].href, /^https:\/\/wa\.me\/\?text=Reach%20college%20early$/);
+  assert.match(msg.cards[0].href, /^intent:\/\/send\?text=Reach%20college%20early#Intent;scheme=whatsapp;package=com\.whatsapp;/);
+  assert.match(decodeURIComponent(msg.cards[0].href), /browser_fallback_url=https:\/\/wa\.me\/\?text=Reach%20college%20early;end$/);
 });
 
 test('engine: unknown requests are not faked', () => {
@@ -205,8 +206,25 @@ test('backup: contains no secret-like fields', async () => {
 test('apps: intent links, whatsapp and URL safety', () => {
   assert.match(appIntentUrl(findApp('instagram')), /package=com\.instagram\.android/);
   assert.equal(findApp('insta').name, 'Instagram');
-  assert.equal(whatsappUrl('9876543210', 'Hi Sir'), 'https://wa.me/919876543210?text=Hi%20Sir');
+  assert.match(whatsappUrl('9876543210', 'Hi Sir'), /^intent:\/\/send\?phone=919876543210&text=Hi%20Sir#Intent;scheme=whatsapp;package=com\.whatsapp;/);
   assert.equal(safeWebUrl('javascript:alert(1)'), null);
   assert.equal(safeWebUrl('example.com'), 'https://example.com/');
   assert.match(calendarUrl({ title: 'Test', date: '2026-10-30', time: '17:00' }), /dates=20261030T170000%2F20261030T180000/);
+});
+
+test('parser: WhatsApp phrasings from Sir', () => {
+  const cases = [
+    ['Open Whatsapp And Text To reach at college early', '', 'Reach at college early'],
+    ['open whatsapp and send message I will be late', '', 'I will be late'],
+    ['text Rahul on whatsapp I am coming', 'Rahul', 'I am coming'],
+    ['message Mom on whatsapp that I am late', 'Mom', 'I am late'],
+    ['send a whatsapp message saying hello', '', 'Hello'],
+  ];
+  for (const [input, contact, text] of cases) {
+    const r = parse(input);
+    assert.equal(r.intent, 'message', input);
+    assert.equal(r.contact, contact, input);
+    assert.equal(r.text, text, input);
+  }
+  assert.equal(parse('open whatsapp').intent, 'open_app');
 });

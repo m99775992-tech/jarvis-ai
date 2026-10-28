@@ -1,4 +1,4 @@
-# PROJECT STATUS — JARVIS AI v0.1.0
+# PROJECT STATUS — JARVIS AI v0.1.1
 
 Last updated: 29 Oct 2026. Evidence = automated tests in `tests/` run in the build sandbox (Node 20 + headless Chromium at 375×760 phone size). **Nothing below has been tested on Sir's actual Android phone yet.**
 
@@ -40,6 +40,9 @@ Legend: **Tested** = implemented and verified by automated test · **Built, need
 
 ## Known limitations
 - Reminders cannot fire when JARVIS is fully closed (browser limitation). Use "Add to Google Calendar" for anything important.
+- Microphone does not work inside the hosted preview (the host page does not pass microphone access to it). Works when JARVIS is opened directly in Chrome.
+- "Open <app>" from a voice command may still need one tap on some phones: Chrome only lets a page open another app shortly after a tap.
+- WhatsApp: JARVIS opens the chat with the text typed; pressing Send needs you (a web app cannot press buttons in other apps).
 - The app cannot read Android's ringer mode; the silent switch is manual.
 - Speech recognition on Chrome Android sends audio to Google to convert to text (disclosed before enabling).
 - Data lives in Chrome's storage for this site. Clearing Chrome site data erases it — keep backups.

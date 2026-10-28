@@ -27,9 +27,15 @@ await send('switch to meeting mode');
 R('meeting mode chip', (await page.textContent('#chip-mode')).includes('MEETING'));
 await send('switch to normal mode');
 // open app card href
-await send('open instagram');
-const href = await page.evaluate(() => null);
-R('open app card shows', await page.locator('.card-title', { hasText: 'Open Instagram' }).count() === 1);
+await page.evaluate(() => { window.__opened = []; window.__jarvisTestOpen = (h) => window.__opened.push(h); });
+await send('open instagram'); await page.waitForTimeout(300);
+R('open app launches immediately (no extra tap)', (await page.evaluate(() => window.__opened)).some((h) => h.includes('package=com.instagram.android')));
+await send('Open Whatsapp And Text To reach at college early'); await page.waitForTimeout(300);
+R('whatsapp message opens approve dialog immediately', await page.locator('#confirm').evaluate((d) => d.open));
+R('nothing opened before approval', !(await page.evaluate(() => window.__opened)).some((h) => h.includes('whatsapp')));
+await page.click('#confirm button[value="ok"], #cf-ok').catch(() => {});
+await page.waitForTimeout(300);
+R('whatsapp opens with text after one Approve tap', (await page.evaluate(() => window.__opened)).some((h) => h.startsWith('intent://send?text=Reach%20at%20college%20early') && h.includes('package=com.whatsapp')));
 // backup: plain
 await page.click('.tabbar button[data-view="memory"]');
 await page.fill('#mem-input', 'Favourite subject is Accountancy'); await page.click('#mem-form button'); await page.waitForTimeout(200);

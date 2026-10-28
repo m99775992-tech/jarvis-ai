@@ -70,8 +70,11 @@ export function digits(phone) {
 }
 
 export function whatsappUrl(phone, text) {
+  // Android intent goes straight into the WhatsApp app; wa.me is the fallback if it is not installed.
   const t = encodeURIComponent(text || '');
-  return phone ? `https://wa.me/${digits(phone)}?text=${t}` : `https://wa.me/?text=${t}`;
+  const web = phone ? `https://wa.me/${digits(phone)}?text=${t}` : `https://wa.me/?text=${t}`;
+  const q = phone ? `phone=${digits(phone)}&text=${t}` : `text=${t}`;
+  return `intent://send?${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`;
 }
 
 export function smsUrl(phone, text) {

@@ -208,25 +208,27 @@ export function createEngine({ getState, commit }) {
       }
 
       case 'message': {
-        const contact = state.contacts.find((c) => c.name.toLowerCase() === p.contact.toLowerCase())
-          || state.contacts.find((c) => c.name.toLowerCase().startsWith(p.contact.toLowerCase()));
+        const contact = !p.contact ? null : (state.contacts.find((c) => c.name.toLowerCase() === p.contact.toLowerCase())
+          || state.contacts.find((c) => c.name.toLowerCase().startsWith(p.contact.toLowerCase())));
         const href = p.channel === 'sms' ? smsUrl(contact?.phone, p.text) : whatsappUrl(contact?.phone, p.text);
         const app = p.channel === 'sms' ? 'Messages' : 'WhatsApp';
-        card('message', `${app} → ${contact ? contact.name : p.contact}`, `“${p.text}”`, {
-          href, cta: 'Review',
-          payload: { channel: p.channel, contact: contact ? contact.name : p.contact, known: !!contact, text: p.text },
+        card('message', `${app} → ${contact ? contact.name : (p.contact || 'choose chat')}`, `“${p.text}”`, {
+          href, cta: 'Send via ' + app, auto: true,
+          payload: { channel: p.channel, contact: contact ? contact.name : p.contact, known: !!contact, phone: contact?.phone || '', text: p.text },
         });
         out.reply = contact
-          ? `Message to ${contact.name} is ready, ${sir}. Authorize it and I will open ${app} with the text typed — you tap Send.`
-          : `Message is ready, ${sir}. “${p.contact}” is not saved in my contacts, so ${app} will ask you to pick the chat. Add them under Memory → Contacts to skip that step.`;
+          ? `Message to ${contact.name} is ready, ${sir}. Tap Authorize and ${app} opens with the text typed — you tap Send.`
+          : !p.contact
+            ? `Message ready, ${sir}. Tap Authorize and ${app} opens with it typed — pick the chat and tap Send.`
+            : `Message ready, ${sir}. “${p.contact}” is not in my contacts yet, so ${app} will ask you to pick the chat. Save them under Memory → Contacts and next time it goes straight to their chat.`;
         out.sensitive = true;
         addAudit(state, 'message_prepare', 'awaiting_approval', `${app} → ${contact ? 'saved contact' : 'unsaved contact'}`);
         break;
       }
 
       case 'call': {
-        const contact = state.contacts.find((c) => c.name.toLowerCase() === p.contact.toLowerCase())
-          || state.contacts.find((c) => c.name.toLowerCase().startsWith(p.contact.toLowerCase()));
+        const contact = !p.contact ? null : (state.contacts.find((c) => c.name.toLowerCase() === p.contact.toLowerCase())
+          || state.contacts.find((c) => c.name.toLowerCase().startsWith(p.contact.toLowerCase())));
         const raw = p.contact.replace(/[^\d+]/g, '');
         const phone = contact?.phone || (raw.replace(/\D/g, '').length >= 7 ? raw : null);
         if (!phone) { out.reply = `I do not have a number for ${p.contact}, ${sir}. Save it under Memory → Contacts and ask again.`; break; }
@@ -243,8 +245,8 @@ export function createEngine({ getState, commit }) {
           out.reply = `${sir}, “${p.app}” is not in my app list yet. I can search for it instead.`;
           break;
         }
-        card('open_app', `Open ${app.name}`, 'Android hand-off', { href: appIntentUrl(app), cta: 'Open', payload: { app: app.name } });
-        out.reply = `${app.name} is ready to launch, ${sir}. Tap Open — Android only lets a web app open other apps after a tap.`;
+        card('open_app', `Open ${app.name}`, 'Opening now', { href: appIntentUrl(app), cta: 'Open again', auto: true, payload: { app: app.name } });
+        out.reply = `Opening ${app.name}, ${sir}.`;
         addAudit(state, 'open_app', 'suggested', app.name);
         break;
       }

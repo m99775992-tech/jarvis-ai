@@ -85,6 +85,12 @@ export function parse(raw, now = new Date()) {
     const contact = m[1].replace(/\b(on )?(whats ?app|wa|sms)\b/i, '').trim();
     return { intent: 'message', channel, contact: capitalise(contact), text: capitalise(m[2]) };
   }
+  // "text Rahul on WhatsApp I am coming" / "message Mom on WhatsApp that I'm late"
+  m = t.match(/^(?:send (?:a )?(?:message |msg |text )?to|text|message|msg|tell|whats ?app)\s+(.+?)\s+on\s+(?:whats ?app|wa|sms)\s+(?:that\s+|saying\s+|to say\s+)?(.+)$/i);
+  if (m && !/^(me|myself)$/i.test(m[1])) return { intent: 'message', channel, contact: capitalise(m[1].trim()), text: capitalise(m[2]) };
+  // No recipient named: "Open WhatsApp and text to reach at college early", "send a WhatsApp message saying hi"
+  m = t.match(/^(?:open (?:whats ?app|wa)\s+(?:and |then )?(?:send|text|message|msg|type|write)(?:\s+(?:a |the )?(?:message|msg|text))?|send (?:a )?(?:whats ?app|wa) (?:message|msg|text)|whats ?app (?:message|msg|text))\s*(?:to say|saying|that|to|:|-)?\s+(.+)$/i);
+  if (m) return { intent: 'message', channel, contact: '', text: capitalise(m[1].trim()) };
 
   // --- calling ---
   if ((m = t.match(/^(?:call|phone|dial|ring)\s+(.+)$/i))) {

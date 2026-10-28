@@ -7,19 +7,20 @@ import { createBackup, verifyBackup, applyRestore } from './backup.js';
 import { calendarUrl } from './apps.js';
 import { ymd, addDays, friendlyDate, friendlyTime } from './dates.js';
 import * as voice from './voice.js';
+import { storage, PERSISTENT } from './storage.js';
 
 export const VERSION = '0.1.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 // ---------------- state ----------------
-const boot = load(localStorage);
+const boot = load(storage);
 let state = boot.state;
 let lastBackupBlob = null;
 let saveFailed = false;
 
 function commit() {
-  try { save(localStorage, state); saveFailed = false; }
+  try { save(storage, state); saveFailed = false; }
   catch (e) { saveFailed = true; toast('Sir, I could not save to storage. Phone storage may be full.'); }
   renderBadges(); renderStrip();
   if (currentView === 'tasks') renderTasks();
@@ -317,7 +318,7 @@ async function runAction(card) {
       case 'restore': return doRestore(card.payload.data, card.payload.createdAt);
       case 'revert_restore': return doRevert();
       case 'erase_all': {
-        for (const k of Object.keys(localStorage)) if (k.startsWith('jarvis.')) localStorage.removeItem(k);
+        for (const k of storage.keys()) if (k.startsWith('jarvis.')) storage.removeItem(k);
         state = defaultState(); addAudit(state, 'erase_all', 'completed'); commit();
         applyTheme(); renderAll(); $('#convo').replaceChildren(); greet(); toast('All JARVIS data erased.');
         return 'completed';
@@ -502,21 +503,21 @@ $('#bk-file').addEventListener('change', async (e) => {
   $('#bk-pass').value = '';
 });
 function doRestore(data, createdAt) {
-  const result = applyRestore(localStorage, { STORAGE_KEY, PRE_RESTORE_KEY }, state, data);
+  const result = applyRestore(storage, { STORAGE_KEY, PRE_RESTORE_KEY }, state, data);
   if (!result.ok) { addAudit(state, 'restore', 'failed', result.error.slice(0, 120)); commit(); toast(result.error); return 'failed'; }
-  state = load(localStorage).state;
+  state = load(storage).state;
   addAudit(state, 'restore', 'completed', 'from backup ' + (createdAt || '').slice(0, 10)); commit();
   applyTheme(); renderAll(); toast(`Restore complete, ${sir()}. Your previous data is kept for undo.`);
   return 'completed';
 }
 function doRevert() {
-  const prev = localStorage.getItem(PRE_RESTORE_KEY);
+  const prev = storage.getItem(PRE_RESTORE_KEY);
   if (!prev) { toast('There is no restore to undo.'); return 'failed'; }
   try {
     const data = normalize(JSON.parse(prev));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.removeItem(PRE_RESTORE_KEY);
-    state = load(localStorage).state; addAudit(state, 'restore_undo', 'completed'); commit(); applyTheme(); renderAll();
+    storage.setItem(STORAGE_KEY, JSON.stringify(data));
+    storage.removeItem(PRE_RESTORE_KEY);
+    state = load(storage).state; addAudit(state, 'restore_undo', 'completed'); commit(); applyTheme(); renderAll();
     toast('Previous data restored.'); return 'completed';
   } catch (e) { toast('Undo failed: ' + e.message); return 'failed'; }
 }
@@ -550,7 +551,7 @@ const CAP_TAG = { works: ['Works', 'ok-t'], device: ['Test on phone', 'gold-t'],
 async function healthItems() {
   const items = [];
   let storageOk = false;
-  try { localStorage.setItem('jarvis.probe', '1'); storageOk = localStorage.getItem('jarvis.probe') === '1'; localStorage.removeItem('jarvis.probe'); } catch {}
+  try { storage.setItem('jarvis.probe', '1'); storageOk = storage.getItem('jarvis.probe') === '1'; storage.removeItem('jarvis.probe'); } catch {}
   items.push(['Local storage', storageOk && !saveFailed ? ['Writable', 'ok-t'] : ['Not writable', 'bad-t']]);
   let persisted = null; try { persisted = await navigator.storage?.persisted?.(); } catch {}
   items.push(['Protected from cleanup', persisted ? ['Yes', 'ok-t'] : ['Not granted', 'warn-t']]);
@@ -561,7 +562,7 @@ async function healthItems() {
   items.push(['Speech output', voice.ttsSupported ? ['Available', 'ok-t'] : ['Not supported here', 'warn-t']]);
   const np = 'Notification' in window ? Notification.permission : 'unsupported';
   items.push(['Notifications', np === 'granted' ? ['Allowed', 'ok-t'] : np === 'denied' ? ['Blocked in browser', 'bad-t'] : np === 'unsupported' ? ['Unsupported', 'warn-t'] : ['Not enabled', 'muted']]);
-  items.push(['Data size', [`${((localStorage.getItem(STORAGE_KEY) || '').length / 1024).toFixed(1)} KB`, 'muted']]);
+  items.push(['Data size', [`${((storage.getItem(STORAGE_KEY) || '').length / 1024).toFixed(1)} KB`, 'muted']]);
   return items;
 }
 function kvList(ul, items) { ul.replaceChildren(...items.map(([k, [v, cls]]) => el('li', {}, el('span', { text: k }), el('span', { class: cls, text: v })))); }
@@ -588,9 +589,9 @@ async function renderSystem() {
     ['Backups made', [String(state.backups.history.length), 'muted']],
     ['Includes', ['Tasks, memory, contacts, log, settings', 'muted']],
     ['Never includes', ['Passwords, keys, tokens (none stored)', 'ok-t']],
-    ['Undo available', [localStorage.getItem(PRE_RESTORE_KEY) ? 'Yes' : 'No', 'muted']],
+    ['Undo available', [storage.getItem(PRE_RESTORE_KEY) ? 'Yes' : 'No', 'muted']],
   ]);
-  $('#bk-revert').disabled = !localStorage.getItem(PRE_RESTORE_KEY);
+  $('#bk-revert').disabled = !storage.getItem(PRE_RESTORE_KEY);
   kvList($('#usage-list'), [
     ['Local commands', [String(state.usage.localCommands), 'muted']],
     ['Voice commands', [String(state.usage.voiceCommands), 'muted']],
@@ -789,6 +790,7 @@ applyTheme();
 setVState('idle');
 renderAll();
 if (boot.recovered) addJarvisMsg({ reply: `${sir()}, your saved data could not be read and may be corrupted. I started fresh and kept a copy of the damaged data. If you have a backup, restore it from System → Backup.`, cards: [] });
+if (!PERSISTENT) addJarvisMsg({ reply: `${sir()}, this is a PREVIEW copy: nothing you enter here is saved, and it resets when you reload. Install the full version (see setup) to keep your tasks and memories.`, cards: [] });
 greet();
 addEventListener('online', renderChips);
 addEventListener('offline', renderChips);

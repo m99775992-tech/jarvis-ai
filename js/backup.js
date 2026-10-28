@@ -91,7 +91,7 @@ export async function verifyBackup(text, passphrase = '') {
 
 /**
  * Staged restore: snapshot current state, write new state, verify, roll back on failure.
- * storage is a localStorage-like object. Returns { ok, error? }.
+ * storage is a browser-storage-like object. Returns { ok, error? }.
  */
 export function applyRestore(storage, keys, currentState, newState) {
   const { STORAGE_KEY, PRE_RESTORE_KEY } = keys;

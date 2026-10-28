@@ -38,3 +38,10 @@ JARVIS is designed to be hard to misuse. No software is unhackable; these are th
 
 ## Updates & rollback
 Updates = new files deployed to the same address. The service worker uses a versioned cache; to roll back, redeploy the previous version folder. Always back up before updating.
+
+## Android bridge (v0.2.0)
+- Only the packaged app (served from https://appassets.androidplatform.net/assets/) runs in the WebView; file access is off; other links leave the app.
+- `window.AndroidJarvis` exposes only: speech in/out, mic permission state, open a link/intent, save a file the user chooses. No reading of files, contacts, SMS, notifications.
+- Intent links have their component and selector cleared so a link cannot target a hidden internal screen of another app.
+- Microphone permission is requested at runtime; the recognizer is stopped whenever JARVIS leaves the screen.
+- Release signing key lives only in GitHub repository secrets.

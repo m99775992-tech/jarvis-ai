@@ -5,12 +5,35 @@
 const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 const synth = globalThis.speechSynthesis;
 
-export const sttSupported = !!SR;
-export const ttsSupported = !!synth;
+// Inside the JARVIS Android app, Android's own speech recognizer and voice are used through a
+// small bridge (window.AndroidJarvis), because Android's WebView has no Web Speech recognition.
+const NATIVE = globalThis.AndroidJarvis || null;
+export const isNativeApp = !!NATIVE;
+const nativeHandlers = {};
+if (NATIVE) globalThis.__jarvisNative = (type, data) => { try { nativeHandlers[type]?.(data); } catch (e) { console.error(e); } };
+function nativeCall(fn, ...args) { try { return NATIVE[fn](...args); } catch { return null; } }
+
+export const sttSupported = NATIVE ? !!nativeCall('sttAvailable') : !!SR;
+export const ttsSupported = NATIVE ? true : !!synth;
 
 let rec = null;
+let nativeSpeaking = false;
+
+function listenNative({ lang, onInterim, onFinal, onEnd, onError }) {
+  stopListening();
+  let finalText = ''; let done = false;
+  const finish = () => { if (done) return; done = true; rec = null; const t = finalText.trim(); if (t) onFinal?.(t); onEnd?.(); };
+  nativeHandlers['stt-interim'] = (t) => onInterim?.(t);
+  nativeHandlers['stt-final'] = (t) => { finalText = t; };
+  nativeHandlers['stt-error'] = (e) => { onError?.(e); };
+  nativeHandlers['stt-end'] = finish;
+  rec = { native: true };
+  nativeCall('startListening', lang);
+  return rec;
+}
 
 export function listen({ lang = 'en-IN', onInterim, onFinal, onEnd, onError }) {
+  if (NATIVE) return listenNative({ lang, onInterim, onFinal, onEnd, onError });
   if (!SR) { onError?.('not-supported'); return null; }
   stopListening();
   rec = new SR();
@@ -36,6 +59,12 @@ export function listen({ lang = 'en-IN', onInterim, onFinal, onEnd, onError }) {
 /** Ask Chrome for the microphone directly. This shows the real Allow/Block prompt reliably on
  *  Android; the stream is closed immediately so speech recognition can use the mic. */
 export async function primeMic() {
+  if (NATIVE) {
+    return new Promise((resolve) => {
+      nativeHandlers['mic-permission'] = (st) => resolve(st === 'granted' ? { ok: true } : { ok: false, error: 'NotAllowedError' });
+      nativeCall('requestMic');
+    });
+  }
   if (!navigator.mediaDevices?.getUserMedia) return { ok: false, error: 'no-getusermedia' };
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -46,15 +75,18 @@ export async function primeMic() {
 
 /** 'granted' | 'denied' | 'prompt' | 'unknown' */
 export async function micPermission() {
+  if (NATIVE) return nativeCall('micPermission') || 'unknown';
   try { return (await navigator.permissions.query({ name: 'microphone' })).state; } catch { return 'unknown'; }
 }
 
 /** True when opened inside WhatsApp/Instagram/Facebook etc. built-in browsers, where the mic rarely works. */
 export function inAppBrowser(ua = navigator.userAgent) {
+  if (NATIVE) return false; // our own app: the bridge provides the mic
   return /; wv\)|FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat/i.test(ua);
 }
 
 export function stopListening() {
+  if (NATIVE) { if (rec) { rec = null; nativeCall('stopListening'); } return; }
   if (rec) { try { rec.abort(); } catch {} rec = null; }
 }
 
@@ -63,7 +95,7 @@ export function isListening() { return !!rec; }
 let cachedVoices = [];
 export function loadVoices() {
   return new Promise((resolve) => {
-    if (!synth) return resolve([]);
+    if (NATIVE || !synth) return resolve([]);
     const v = synth.getVoices();
     if (v.length) { cachedVoices = v; return resolve(v); }
     const t = setTimeout(() => resolve(synth.getVoices()), 1500);
@@ -89,6 +121,12 @@ export function rankVoices(voices) {
 }
 
 export function speak(text, settings, { onStart, onEnd } = {}) {
+  if (NATIVE && text) {
+    nativeHandlers['tts-start'] = () => { nativeSpeaking = true; onStart?.(); };
+    nativeHandlers['tts-end'] = () => { nativeSpeaking = false; onEnd?.(); };
+    nativeCall('speak', text.replace(/[“”]/g, '"').replace(/ — /g, ', '), Number(settings.rate) || 1, Number(settings.pitch) || 1);
+    return;
+  }
   if (!synth || !text) { onEnd?.(); return; }
   synth.cancel();
   const u = new SpeechSynthesisUtterance(text.replace(/[“”]/g, '"').replace(/ — /g, ', '));
@@ -102,5 +140,9 @@ export function speak(text, settings, { onStart, onEnd } = {}) {
   synth.speak(u);
 }
 
-export function stopSpeaking() { if (synth) synth.cancel(); }
-export function isSpeaking() { return !!(synth && synth.speaking); }
+export function stopSpeaking() { if (NATIVE) { nativeSpeaking = false; nativeCall('stopSpeaking'); return; } if (synth) synth.cancel(); }
+export function isSpeaking() { return NATIVE ? nativeSpeaking : !!(synth && synth.speaking); }
+export function nativeVoiceName() { return NATIVE ? nativeCall('voiceName') || 'Android default' : null; }
+/** Open a link/intent from inside the Android app (Android decides which app handles it). */
+export function nativeOpen(href) { return NATIVE ? !!nativeCall('openExternal', href) : false; }
+export function nativeSave(name, mime, text) { return NATIVE ? !!nativeCall('saveFile', name, mime, text) : false; }

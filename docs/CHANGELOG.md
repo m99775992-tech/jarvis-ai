@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.0 — 29 Oct 2026 (Phase 2, step 1: Android app)
+- New native Android app (`android/`, Kotlin) wrapping the same JARVIS app, built and published automatically by GitHub Actions as a signed APK.
+- Voice input via Android's speech recognizer and voice output via Android's text-to-speech (prefers British male voice).
+- In the app, apps and links open directly with no extra tap; messages and calls still require Authorize.
+- Backups save via Android's Save-as screen; restore via Android's file picker.
+- New simulated-bridge browser test (11 checks). See docs/ANDROID.md.
+
 ## 0.1.2 — 29 Oct 2026
 - "Mic test" button/command: shows how JARVIS was opened, speech support, permission state, then listens once and repeats what it heard. Every outcome ends with a short code (MIC-OK, MIC-BLOCKED, MIC-INAPP, MIC-SPEECH-SERVICE, MIC-SILENT, MIC-NETWORK, MIC-NONE, MIC-FRAMED).
 - Mic button now asks Chrome for the microphone directly before listening, which shows the real Allow prompt reliably on Android.

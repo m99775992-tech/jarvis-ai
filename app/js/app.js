@@ -9,7 +9,7 @@ import { ymd, addDays, friendlyDate, friendlyTime } from './dates.js';
 import * as voice from './voice.js';
 import { storage, PERSISTENT } from './storage.js';
 
-export const VERSION = '0.1.2';
+export const VERSION = '0.2.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -277,6 +277,7 @@ POLICY.revert_restore = { level: 'confirm', risk: 'high', label: 'Undo last rest
 
 const FRAMED = (() => { try { return window.top !== window.self; } catch { return true; } })();
 function openHref(href, external) {
+  if (voice.isNativeApp) { voice.nativeOpen(href); return; } // Android app: open directly, no tap needed
   if ((/^https?:/i.test(href) && external) || FRAMED) {
     // Inside a preview frame, navigating the frame itself is blocked, so ask for a new window.
     const w = window.open(href, '_blank', 'noopener,noreferrer');
@@ -452,6 +453,7 @@ function renderLog() {
   }
 }
 function download(name, text) {
+  if (voice.isNativeApp) { voice.nativeSave(name, 'application/json', text); return; } // Android "Save as" screen
   const blob = new Blob([text], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = el('a', { href: url, download: name }); document.body.append(a); a.click(); a.remove();
@@ -648,7 +650,7 @@ $('#notif-test').addEventListener('click', () => notify({ title: 'JARVIS', body:
 async function populateVoices() {
   const vs = voice.rankVoices(await voice.loadVoices());
   const sel = $('#voice-select');
-  sel.replaceChildren(el('option', { value: '', text: vs.length ? `Auto — ${vs[0].name} (${vs[0].lang})` : 'No voices found on this device' }), ...vs.map((v) => el('option', { value: v.voiceURI, text: `${v.name} · ${v.lang}` })));
+  sel.replaceChildren(el('option', { value: '', text: voice.isNativeApp ? `Android — ${voice.nativeVoiceName()}` : vs.length ? `Auto — ${vs[0].name} (${vs[0].lang})` : 'No voices found on this device' }), ...vs.map((v) => el('option', { value: v.voiceURI, text: `${v.name} · ${v.lang}` })));
   sel.value = state.settings.voiceURI || '';
 }
 
@@ -660,7 +662,7 @@ function voiceConsent() {
     const dl = $('#cf-details'); dl.replaceChildren();
     const row = (k, v) => dl.append(el('dt', { text: k }), el('dd', { text: v }));
     row('When the mic is on', 'Only while the mic button is red and the MIC LIVE indicator shows. Never in the background.');
-    row('Where audio goes', 'Chrome on Android sends your speech to Google’s speech service to turn it into text. JARVIS itself stores only the resulting text command.');
+    row('Where audio goes', voice.isNativeApp ? 'Android’s speech service (normally Google’s) turns your speech into text, and may use the internet to do it. JARVIS itself stores only the resulting text command.' : 'Chrome on Android sends your speech to Google’s speech service to turn it into text. JARVIS itself stores only the resulting text command.');
     row('Identity', 'Voice is not used as proof of identity. Risky actions still need your tap.');
     $('#cf-extra').replaceChildren(); $('#cf-ok').disabled = false;
     d.onclose = () => {
@@ -697,10 +699,10 @@ async function ensureMic() {
 async function runMicTest() {
   const perm = await voice.micPermission();
   const lines = [
-    ['Opened in', FRAMED ? 'Another page (blocked)' : voice.inAppBrowser() ? "An app's built-in browser" : 'Chrome directly'],
+    ['Opened in', voice.isNativeApp ? 'JARVIS Android app' : FRAMED ? 'Another page (blocked)' : voice.inAppBrowser() ? "An app's built-in browser" : 'Chrome directly'],
     ['Secure link (https)', window.isSecureContext ? 'Yes' : 'No'],
     ['Speech recognition', voice.sttSupported ? 'Available' : 'Not available'],
-    ['JARVIS voice output', voice.ttsSupported ? 'Available' : 'Not available'],
+    ['JARVIS voice output', voice.isNativeApp ? 'Android voice: ' + voice.nativeVoiceName() : voice.ttsSupported ? 'Available' : 'Not available'],
     ['Mic permission (before test)', perm],
   ];
   const m = addJarvisMsg({ reply: `${sir()}, microphone check:`, cards: [] });
@@ -868,7 +870,7 @@ checkReminders(true);
 setInterval(() => { checkReminders(false); if (currentView === 'core') renderStrip(); }, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkReminders(false); renderStrip(); } });
 
-if ('serviceWorker' in navigator && window.isSecureContext) {
+if ('serviceWorker' in navigator && window.isSecureContext && !voice.isNativeApp) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch {}

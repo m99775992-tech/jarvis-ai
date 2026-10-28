@@ -50,3 +50,7 @@ Legend: **Tested** = implemented and verified by automated test · **Built, need
 ## Deployment
 - Live on GitHub Pages: https://m99775992-tech.github.io/jarvis-ai/ (branch `gh-pages` = contents of `app/`). Verified 29 Oct 2026: page loads, microphone access allowed, tasks persist after reload, service worker registered, no console errors. Not yet verified on Sir's own phone.
 - To update: `git subtree split --prefix app` → push to `gh-pages`.
+
+## Android app (v0.2.0)
+- Built: native shell, bridge, signed CI build + GitHub Release. Details and test status: docs/ANDROID.md.
+- Not yet verified on Sir's phone: speech recognition, voice, app launching, backup save/restore screens.

@@ -1,0 +1,77 @@
+name: Build JARVIS Android app
+
+on:
+  push:
+    branches: [master]
+    paths: ['app/**', 'android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed only to publish the APK as a GitHub Release
+
+concurrency:
+  group: android-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Run JARVIS core tests
+        run: node --test tests/
+
+      - name: Restore signing key (from repository secrets)
+        env:
+          KEYSTORE_B64: ${{ secrets.JARVIS_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Signing key secret missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/jarvis-release.jks"
+
+      - name: Build signed APK
+        env:
+          JARVIS_KEYSTORE_FILE: ${{ runner.temp }}/jarvis-release.jks
+          JARVIS_KEYSTORE_PASSWORD: ${{ secrets.JARVIS_KEYSTORE_PASSWORD }}
+          JARVIS_KEY_PASSWORD: ${{ secrets.JARVIS_KEYSTORE_PASSWORD }}
+          JARVIS_KEY_ALIAS: jarvis
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+
+      - name: Verify signature and name the file
+        id: apk
+        run: |
+          VER=$(grep -oP "VERSION = '\K[0-9.]+" app/js/app.js)
+          SRC=android/app/build/outputs/apk/release/app-release.apk
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$SRC" | head -3
+          mkdir -p out && cp "$SRC" "out/JARVIS-$VER.apk"
+          sha256sum "out/JARVIS-$VER.apk" | tee "out/JARVIS-$VER.apk.sha256"
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          rm -f "$RUNNER_TEMP/jarvis-release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-${{ steps.apk.outputs.ver }}
+          path: out/
+
+      - name: Publish release (download link for the phone)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.apk.outputs.ver }}
+        run: |
+          NOTES="JARVIS Android app v$VER. On your phone: download JARVIS-$VER.apk below, open it, allow 'Install unknown apps' for your browser if asked, then Install. Updates install over the old version and keep your data."
+          if gh release view "v$VER" >/dev/null 2>&1; then
+            gh release upload "v$VER" out/* --clobber
+          else
+            gh release create "v$VER" out/* --title "JARVIS v$VER (Android)" --notes "$NOTES" --latest
+          fi

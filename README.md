@@ -1,6 +1,8 @@
 # JARVIS AI — Mizan Technology
 
-**Live app:** https://m99775992-tech.github.io/jarvis-ai/ (open in Chrome on Android, then ⋮ → Add to Home screen)
+**Android app:** https://github.com/m99775992-tech/jarvis-ai/releases/latest (download the .apk on your phone; see docs/ANDROID.md)
+
+**Live web app:** https://m99775992-tech.github.io/jarvis-ai/ (open in Chrome on Android, then ⋮ → Add to Home screen)
 
 **Just A Rather Very Intelligent System.** Owner: Kaleem Sundke · Version 0.1.0 (Phase 1 foundation + parts of Phases 2–4).
 
